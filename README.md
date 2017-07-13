@@ -5,7 +5,7 @@ A fast, open source server that supports multiple protocol versions and smooth v
 Since August of 2017, [Tyler3D](https://github.com/Tyler3D) has stopped working on this project. So I forked the code and remade it into MultiOgar-Edited-Unlimited. An updated version of the previous MultiOgar.
 
 ## Information
-Current version : **1.0.3**
+Current version : **1.0.0**
 
 ![Language](https://img.shields.io/badge/language-node.js-yellow.svg)
 [![License](https://img.shields.io/badge/license-APACHE2-blue.svg)](https://github.com/Barbosik/OgarMulti/blob/master/LICENSE.md)
