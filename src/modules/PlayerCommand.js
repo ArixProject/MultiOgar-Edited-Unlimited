@@ -74,6 +74,48 @@ PlayerCommand.prototype.userLogin = function (username, password) {
     return null;
 };
 
+function ban(gameServer, split, ip) {
+    var ipBin = ip.split('.');
+    if (ipBin.length != 4) {
+        Logger.warn("Invalid IP format: " + ip);
+        return;
+    }
+    gameServer.ipBanList.push(ip);
+    if (ipBin[2] == "*" || ipBin[3] == "*") {
+        Logger.print("The IP sub-net " + ip + " has been banned");
+    } else {
+        Logger.print("The IP " + ip + " has been banned");
+    }
+    gameServer.clients.forEach(function (socket) {
+        // If already disconnected or the ip does not match
+        if (!socket || !socket.isConnected || !gameServer.checkIpBan(ip) || socket.remoteAddress != ip)
+            return;
+        // remove player cells
+        gameServer.commands.kill(gameServer, split);
+        // disconnect
+        socket.close(1000, "Banned from server");
+        var name = getName(socket.playerTracker._name);
+        Logger.print("Banned: \"" + name + "\" with Player ID " + socket.playerTracker.pID);
+        gameServer.sendChatMessage(null, null, "Banned \"" + name + "\""); // notify to don't confuse with server bug
+    }, gameServer);
+    saveIpBanList(gameServer);
+}
+function saveIpBanList(gameServer) {
+    var fs = require("fs");
+    try {
+        var blFile = fs.createWriteStream('../src/ipbanlist.txt');
+        // Sort the blacklist and write.
+        gameServer.ipBanList.sort().forEach(function (v) {
+            blFile.write(v + '\n');
+        });
+        blFile.end();
+        Logger.info(gameServer.ipBanList.length + " IP ban records saved.");
+    } catch (err) {
+        Logger.error(err.stack);
+        Logger.error("Failed to save " + '../src/ipbanlist.txt' + ": " + err.message);
+    }
+}
+
 PlayerCommand.prototype.createAccount = function (username, password) {
     var fs = require('fs');
     if (!username || !password) return null;
@@ -115,6 +157,7 @@ var playerCommands = {
             this.writeLine("/shutdown - SHUTDOWNS THE SERVER - MUST BE ADMIN");
             this.writeLine("/status - Shows Status of the Server");
             this.writeLine("/account - Allow you to manage your account");
+            this.writeLine("/ban [id] - ban the player to id")
             this.writeLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
             this.writeLine("Showing Page 1 of 1.");
             }
@@ -161,6 +204,56 @@ var playerCommands = {
             this.writeLine("Your skin set to " + skinName);
         }
 },
+    ban: function (args) {
+        // Error message
+        var logInvalid = "Please specify a valid player ID or IP address!";
+        
+        if (args[1] === null || typeof args[1] == "undefined") {
+            // If no input is given; added to avoid error
+            this.writeLine(logInvalid);
+            return;
+        }
+        
+        if (args[1].indexOf(".") >= 0) {
+            // If input is an IP address
+            var ip = args[1];
+            var ipParts = ip.split(".");
+            
+            // Check for invalid decimal numbers of the IP address
+            for (var i in ipParts) {
+                if (i > 1 && ipParts[i] == "*") {
+                    // mask for sub-net
+                    continue;
+                }
+                // If not numerical or if it's not between 0 and 255
+                if (isNaN(ipParts[i]) || ipParts[i] < 0 || ipParts[i] >= 256) {
+                    this.writeLine(logInvalid);
+                    return;
+                }
+            }
+            ban(this.gameServer, args, ip);
+            return;
+        }
+        // if input is a Player ID
+        var id = parseInt(args[1]);
+        if (isNaN(id)) {
+            // If not numerical
+            this.writeLine(logInvalid);
+            return;
+        }
+        var ip = null;
+        for (var i in this.gameServer.clients) {
+            var client = this.gameServer.clients[i];
+            if (!client || !client.isConnected)
+                continue;
+            if (client.playerTracker.pID == id) {
+                ip = client._socket.remoteAddress;
+                break;
+            }
+        }
+        if (ip) ban(this.gameServer, args, ip);
+        else this.writeLine("Player ID " + id + " not found!");
+    },
     account: function (args) {
         var whattodo = args[1];
         if (args[1] == null) {
