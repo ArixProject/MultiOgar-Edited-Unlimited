@@ -74,48 +74,6 @@ PlayerCommand.prototype.userLogin = function (username, password) {
     return null;
 };
 
-function ban(gameServer, split, ip) {
-    var ipBin = ip.split('.');
-    if (ipBin.length != 4) {
-        Logger.warn("Invalid IP format: " + ip);
-        return;
-    }
-    gameServer.ipBanList.push(ip);
-    if (ipBin[2] == "*" || ipBin[3] == "*") {
-        Logger.print("The IP sub-net " + ip + " has been banned");
-    } else {
-        Logger.print("The IP " + ip + " has been banned");
-    }
-    gameServer.clients.forEach(function (socket) {
-        // If already disconnected or the ip does not match
-        if (!socket || !socket.isConnected || !gameServer.checkIpBan(ip) || socket.remoteAddress != ip)
-            return;
-        // remove player cells
-        gameServer.commands.kill(gameServer, split);
-        // disconnect
-        socket.close(1000, "Banned from server");
-        var name = getName(socket.playerTracker._name);
-        Logger.print("Banned: \"" + name + "\" with Player ID " + socket.playerTracker.pID);
-        gameServer.sendChatMessage(null, null, "Banned \"" + name + "\""); // notify to don't confuse with server bug
-    }, gameServer);
-    saveIpBanList(gameServer);
-}
-function saveIpBanList(gameServer) {
-    var fs = require("fs");
-    try {
-        var blFile = fs.createWriteStream('../src/ipbanlist.txt');
-        // Sort the blacklist and write.
-        gameServer.ipBanList.sort().forEach(function (v) {
-            blFile.write(v + '\n');
-        });
-        blFile.end();
-        Logger.info(gameServer.ipBanList.length + " IP ban records saved.");
-    } catch (err) {
-        Logger.error(err.stack);
-        Logger.error("Failed to save " + '../src/ipbanlist.txt' + ": " + err.message);
-    }
-}
-
 PlayerCommand.prototype.createAccount = function (username, password) {
     var fs = require('fs');
     if (!username || !password) return null;
@@ -251,6 +209,47 @@ var playerCommands = {
                 break;
             }
         }
+        function ban(gameServer, split, ip) {
+    var ipBin = ip.split('.');
+    if (ipBin.length != 4) {
+        Logger.warn("Invalid IP format: " + ip);
+        return;
+    }
+    gameServer.ipBanList.push(ip);
+    if (ipBin[2] == "*" || ipBin[3] == "*") {
+        Logger.print("The IP sub-net " + ip + " has been banned");
+    } else {
+        Logger.print("The IP " + ip + " has been banned");
+    }
+    gameServer.clients.forEach(function (socket) {
+        // If already disconnected or the ip does not match
+        if (!socket || !socket.isConnected || !gameServer.checkIpBan(ip) || socket.remoteAddress != ip)
+            return;
+        // remove player cells
+        gameServer.commands.kill(gameServer, split);
+        // disconnect
+        socket.close(1000, "Banned from server");
+        var name = getName(socket.playerTracker._name);
+        Logger.print("Banned: \"" + name + "\" with Player ID " + socket.playerTracker.pID);
+        gameServer.sendChatMessage(null, null, "Banned \"" + name + "\""); // notify to don't confuse with server bug
+    }, gameServer);
+    saveIpBanList(gameServer);
+}
+	function saveIpBanList(gameServer) {
+    var fs = require("fs");
+    try {
+        var blFile = fs.createWriteStream('../src/ipbanlist.txt');
+        // Sort the blacklist and write.
+        gameServer.ipBanList.sort().forEach(function (v) {
+            blFile.write(v + '\n');
+        });
+        blFile.end();
+        Logger.info(gameServer.ipBanList.length + " IP ban records saved.");
+    } catch (err) {
+        Logger.error(err.stack);
+        Logger.error("Failed to save " + '../src/ipbanlist.txt' + ": " + err.message);
+    }
+}
         if (ip) ban(this.gameServer, args, ip);
         else this.writeLine("Player ID " + id + " not found!");
     },
