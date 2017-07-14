@@ -87,7 +87,7 @@ PlayerCommand.prototype.createAccount = function (username, password) {
     var user = {username: username, password: password, role: 1, name: "Local User", level: 0, exp: 0};
     this.gameServer.userList.push(user);
     json = JSON.stringify(this.gameServer.userList);
-    var file = '../src/enum/UserRoles.json';
+    var file = '../src/enum/userRoles.json';
     fs.writeFileSync(file, json, 'utf-8');
     this.gameServer.loadFiles();
     return true;
@@ -98,7 +98,7 @@ var playerCommands = {
         var page = parseInt(args[1]);
         if (this.playerTracker.userRole == UserRoleEnum.ADMIN || this.playerTracker.userRole == UserRoleEnum.MODER) {
             if (isNaN(page)) {
-                this.writeLine("Please Enter a Page Number!");
+                this.writeLine("Please Enter a Page Number! 0/1");
                 return;
             }
             if (page == 1) { // 10 Fit per Page
