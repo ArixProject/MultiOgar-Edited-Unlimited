@@ -69,6 +69,7 @@ Commands.list = {
                     "│ mute [PlayerID]              │ Mute player from chat                     │\n"+
                     "│ unmute [PlayerID]            │ Unmute player from chat                   │\n"+
                     "| lms                          | Starts/ends last man standing             |\n"+
+                    "| chat                         | Sends a server message to all clients     |\n"+
                     "│                                                                          │\n"+
                     "│                          ----Miscellaneous----                           │\n"+
                     "│                                                                          │\n"+
@@ -159,7 +160,12 @@ Commands.list = {
         gamemode.onServerInit(gameServer);
         Commands.list.reset(gameServer, split); // Just in case
         Logger.print("Successfully Changed Game Mode to: " + gameServer.gameMode.name);
-    },
+    }, 
+         chat: function (gameServer, split) {
+          for (var i = 0; i < gameServer.clients.length; i++) {
+          gameServer.sendChatMessage(null, i, String(split.slice(1, split.length).join(" ")));
+          }
+      },
     minion: function(gameServer, split) {
         var id = parseInt(split[1]);
         var add = parseInt(split[2]);
